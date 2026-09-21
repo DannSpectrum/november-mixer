@@ -9,10 +9,9 @@ export const site = {
   /** How often the client re-checks the live doctor list (milliseconds). */
   syncIntervalMs: 60_000,
   event: {
-    // TODO: replace the placeholders below with the real November Mixer details.
     name: 'November Mixer',
-    date: 'November 2026',
-    time: 'Time to be announced',
-    venue: 'Venue to be announced',
+    date: 'Friday, November 20, 2026',
+    time: '6:30 PM – 9:30 PM',
+    venue: 'Santa Barbara Room, 3649 Mission Inn Avenue, Riverside, CA 92501',
   },
 } as const

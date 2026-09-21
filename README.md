@@ -16,20 +16,22 @@ Google Sheet (private)  ──▶  api/doctors.ts (Vercel fn, service account, e
 
 - `src/lib/doctors.ts` — shared, pure logic (parse → group → sort → index). Used by both the
   API function and the UI, so the data behaves identically everywhere.
-- `src/hooks/useDoctors.ts` — polling + last-good-payload caching. In local dev, if the API
-  isn't running, the page falls back to sample data (`src/lib/sample.ts`).
-- `api/doctors.ts` — authenticates with a Google **service account**, reads `A:B` of your
-  sheet tab, and responds with `Cache-Control: s-maxage=30` so polling stays cheap.
+- `src/hooks/useDoctors.ts` — polling + last-good-payload caching; failures surface as a
+  retryable error state.
+- `api/doctors.ts` — authenticates with a Google **service account**, reads `A:G` of your
+  sheet tab (only rows with RSVP = `Yes` are served), and responds with
+  `Cache-Control: s-maxage=30` so polling stays cheap.
 
 ## Sheet format
 
-| A (Doctor)     | B (Location)                  |
-| -------------- | ----------------------------- |
-| Dr. Ana Reyes  | Spectrum Clinic — Makati     |
-| Dr. Ana Reyes  | The Medical City — Pasig      |
-| Dr. Ben Cruz   | Spectrum Clinic — Ortigas     |
+| A (Doctor)     | B (Location)                  | … | G (RSVP) |
+| -------------- | ----------------------------- | - | -------- |
+| Dr. Ana Reyes  | Spectrum Clinic — Makati      | … | Yes      |
+| Dr. Ana Reyes  | The Medical City — Pasig      | … | Yes      |
+| Dr. Ben Cruz   | Spectrum Clinic — Ortigas     | … | No       |
 
 - One row per **doctor–location pair** (repeat the doctor for each location — the app groups them).
+- **Column G is the RSVP flag — only rows set to `Yes` are shown** (pending, maybe and no are excluded).
 - A header row is optional (it is detected and skipped). The tab defaults to `Sheet1`.
 
 ## Setup
@@ -63,7 +65,7 @@ npm run dev        # full local stack — /api/* runs inside the Vite dev server
 ```
 
 `npm run dev` serves the real sheet through the same handler production uses — no Vercel CLI
-or login needed. If the sheet can't be read, development falls back to sample data; open
+or login needed. If the sheet can't be read, the page shows an error state; open
 `http://localhost:5173/api/doctors` to see the raw JSON or the exact error message.
 
 For maximum Vercel fidelity (edge caching, runtime parity), `npx vercel dev` still works too.
@@ -78,7 +80,7 @@ serverless function automatically.
 
 | Command           | Purpose                              |
 | ----------------- | ------------------------------------ |
-| `npm run dev`     | Local dev server (sample data)       |
+| `npm run dev`     | Dev server with the live API (reads `.env.local`) |
 | `npm run build`   | Type-check + production build        |
 | `npm run preview` | Preview the production build         |
 | `npm run lint`    | Lint with oxlint                     |

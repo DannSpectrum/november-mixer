@@ -1,14 +1,12 @@
-import { useEffect, useState } from 'react'
 import { site } from '../config/site'
 
-export type SyncStatus = 'live' | 'sample' | 'loading' | 'offline'
+export type SyncStatus = 'live' | 'loading' | 'offline'
 
 interface HeaderProps {
   status: SyncStatus
-  updatedAt?: string
 }
 
-export function Header({ status, updatedAt }: HeaderProps) {
+export function Header({ status }: HeaderProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-hairline/80 bg-canvas/80 backdrop-blur-xl">
       <div aria-hidden className="absolute inset-x-0 top-0 h-0.5 bg-linear-to-r from-brand via-[#ff2d78] to-[#7c5cff]" />
@@ -23,7 +21,7 @@ export function Header({ status, updatedAt }: HeaderProps) {
           >
             Doctors
           </a>
-          <SyncBadge status={status} updatedAt={updatedAt} />
+          <SyncBadge status={status} />
         </div>
       </div>
     </header>
@@ -32,21 +30,12 @@ export function Header({ status, updatedAt }: HeaderProps) {
 
 const STATUS_STYLES: Record<SyncStatus, { dot: string; label: string; pulse: boolean }> = {
   live: { dot: 'bg-emerald-500', label: 'Live', pulse: true },
-  sample: { dot: 'bg-amber-500', label: 'Sample data', pulse: false },
   loading: { dot: 'bg-ink-muted', label: 'Connecting…', pulse: true },
   offline: { dot: 'bg-rose-500', label: 'Reconnecting…', pulse: false },
 }
 
-function SyncBadge({ status, updatedAt }: HeaderProps) {
-  const [now, setNow] = useState(() => Date.now())
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 15_000)
-    return () => window.clearInterval(timer)
-  }, [])
-
+function SyncBadge({ status }: HeaderProps) {
   const style = STATUS_STYLES[status]
-  const timeAgo = status === 'live' && updatedAt ? ` · ${relativeTime(updatedAt, now)}` : ''
 
   return (
     <span className="flex items-center gap-2 rounded-full border border-hairline bg-surface px-3 py-1.5 text-xs font-medium text-ink-muted">
@@ -56,20 +45,7 @@ function SyncBadge({ status, updatedAt }: HeaderProps) {
         )}
         <span className={`relative inline-flex h-2 w-2 rounded-full ${style.dot}`} />
       </span>
-      <span>
-        {style.label}
-        {timeAgo}
-      </span>
+      <span>{style.label}</span>
     </span>
   )
-}
-
-function relativeTime(iso: string, now: number): string {
-  const seconds = Math.max(0, Math.round((now - new Date(iso).getTime()) / 1000))
-  if (seconds < 15) return 'just now'
-  if (seconds < 60) return `${seconds}s ago`
-  const minutes = Math.round(seconds / 60)
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.round(minutes / 60)
-  return hours < 24 ? `${hours}h ago` : new Date(iso).toLocaleDateString()
 }

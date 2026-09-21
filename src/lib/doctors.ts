@@ -1,6 +1,6 @@
 /**
  * Shared directory logic — used by the Vercel API function (server) and the
- * React app (search, grouping, dev sample data). Keep this module pure:
+ * React app (search, grouping). Keep this module pure:
  * no DOM, no network, no environment access.
  */
 
@@ -26,6 +26,11 @@ export interface DoctorIndex {
 
 const NAME_PREFIX = /^(dr|dra)\.?\s+/i
 const NAME_SUFFIXES = new Set(['jr', 'jr.', 'sr', 'sr.', 'ii', 'iii', 'iv'])
+
+const DOCTOR_COLUMN = 0
+const LOCATION_COLUMN = 1
+const RSVP_COLUMN = 6 // column G
+const RSVP_ACCEPTED = 'yes'
 
 function normalize(value: unknown): string {
   return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : ''
@@ -68,21 +73,27 @@ export function locationLabel(count: number): string {
 }
 
 function isHeaderRow(row: readonly unknown[]): boolean {
-  const [first = '', second = ''] = row.map(cell => normalize(cell).toLowerCase())
+  const first = normalize(row[DOCTOR_COLUMN]).toLowerCase()
+  const second = normalize(row[LOCATION_COLUMN]).toLowerCase()
   return first.includes('doctor') && second.includes('locat')
 }
 
-/** Converts raw sheet values into clean doctor–location pairs. */
+/** Column G marks who is attending the event — only rows set to "Yes" make the list. */
+function isAttending(row: readonly unknown[]): boolean {
+  return normalize(row[RSVP_COLUMN]).toLowerCase() === RSVP_ACCEPTED
+}
+
+/** Converts raw sheet values into clean doctor–location pairs, attending doctors only. */
 export function parseRows(values: readonly (readonly unknown[])[]): DoctorRow[] {
   const rows: DoctorRow[] = []
   const seen = new Set<string>()
 
   for (const value of values) {
     const row = Array.isArray(value) ? value : []
-    if (isHeaderRow(row)) continue
+    if (isHeaderRow(row) || !isAttending(row)) continue
 
-    const doctor = normalize(row[0])
-    const location = normalize(row[1])
+    const doctor = normalize(row[DOCTOR_COLUMN])
+    const location = normalize(row[LOCATION_COLUMN])
     if (!doctor || !location) continue
 
     const dedupeKey = `${key(doctor)}|${key(location)}`

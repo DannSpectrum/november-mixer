@@ -7,13 +7,13 @@ import { useDoctors } from './hooks/useDoctors'
 import { matchesQuery } from './lib/doctors'
 
 export default function App() {
-  const { index, source, isLoading, error, retry } = useDoctors()
+  const { index, isLoading, error, retry } = useDoctors()
   const [query, setQuery] = useState('')
 
   const doctors = useMemo(() => index?.doctors ?? [], [index])
   const filteredDoctors = useMemo(() => doctors.filter(doctor => matchesQuery(doctor, query)), [doctors, query])
 
-  const status: SyncStatus = source === 'live' ? 'live' : source === 'sample' ? 'sample' : isLoading ? 'loading' : 'offline'
+  const status: SyncStatus = index ? 'live' : isLoading ? 'loading' : 'offline'
   const isUnavailable = Boolean(error) && !index
 
   const handleSelectLocation = useCallback((location: string) => {
@@ -25,7 +25,7 @@ export default function App() {
 
   return (
     <div id="top" className="min-h-dvh">
-      <Header status={status} updatedAt={index?.updatedAt} />
+      <Header status={status} />
       <main>
         <Hero
           query={query}

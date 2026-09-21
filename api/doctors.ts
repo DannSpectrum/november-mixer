@@ -38,8 +38,9 @@ function readCredentials(): ServiceAccountCredentials {
 
 /**
  * GET /api/doctors — reads the private Google Sheet through a service account
- * and returns the grouped doctor index as JSON. Cached at the edge for 30s so
- * frequent polling stays cheap.
+ * and returns the grouped doctor index as JSON. Only rows whose RSVP column
+ * (G) is "Yes" are included. Cached at the edge for 30s so frequent polling
+ * stays cheap.
  */
 export default async function handler(request: VercelRequest, response: VercelResponse): Promise<void> {
   if (request.method !== 'GET') {
@@ -59,7 +60,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     const sheets = google.sheets({ version: 'v4', auth })
     const { data } = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `'${sheetName}'!A:B`,
+      range: `'${sheetName}'!A:G`,
     })
 
     response.setHeader('Cache-Control', CACHE_CONTROL)
