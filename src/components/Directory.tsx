@@ -1,5 +1,4 @@
 import { useMemo } from 'react'
-import { site } from '../config/site'
 import { useScrollSpy } from '../hooks/useScrollSpy'
 import { letterOf, type Doctor } from '../lib/doctors'
 import { DoctorCard } from './DoctorCard'
@@ -49,7 +48,7 @@ export function Directory({
       className="mx-auto max-w-6xl scroll-mt-24 px-4 pb-24 pt-16 sm:px-6"
     >
       <h2 id="doctors-title" className="text-2xl font-semibold tracking-tight sm:text-3xl">
-        Doctors at the {site.event.name}
+        Doctors at the event
       </h2>
       <p className="mt-1 text-sm text-ink-muted">
         Browse A–Z or search by name or location — the list stays up to date automatically.

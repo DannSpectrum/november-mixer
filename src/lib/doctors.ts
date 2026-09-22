@@ -32,6 +32,10 @@ const LOCATION_COLUMN = 1
 const RSVP_COLUMN = 6 // column G
 const RSVP_ACCEPTED = 'yes'
 
+const CITY_NAME_COLUMN = 0 // column A of the Cities tab
+const CITY_FIRST_COLUMN = 1 // column B
+const CITY_LAST_COLUMN = 11 // column L
+
 function normalize(value: unknown): string {
   return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : ''
 }
@@ -69,6 +73,7 @@ export function initialsOf(name: string): string {
 }
 
 export function locationLabel(count: number): string {
+  if (count === 0) return 'Location to be announced'
   return count === 1 ? '1 location' : `${count} locations`
 }
 
@@ -106,6 +111,37 @@ export function parseRows(values: readonly (readonly unknown[])[]): DoctorRow[] 
   return rows
 }
 
+/** "{Last name}, {First name}" → "{First name} {Last name}" (suffixes stay last). */
+function reorderName(raw: string): string {
+  const [last = '', ...rest] = normalize(raw).split(',')
+  const first = rest.join(',').trim()
+  if (!first) return last
+  const tokens = first.split(' ')
+  const suffix =
+    tokens.length > 1 && NAME_SUFFIXES.has(tokens[tokens.length - 1].toLowerCase()) ? tokens.pop() : undefined
+  return `${tokens.join(' ')} ${last}${suffix ? ` ${suffix}` : ''}`
+}
+
+/** City lists from the "Cities" tab, keyed by the normalized doctor name. */
+function buildCityMap(values: readonly (readonly unknown[])[]): Map<string, string[]> {
+  const citiesByName = new Map<string, string[]>()
+
+  for (const value of values) {
+    const row = Array.isArray(value) ? value : []
+    const name = reorderName(normalize(row[CITY_NAME_COLUMN]))
+    if (!name || name.toLowerCase() === 'doctors') continue
+
+    const cities: string[] = []
+    for (let column = CITY_FIRST_COLUMN; column <= CITY_LAST_COLUMN; column++) {
+      const city = normalize(row[column])
+      if (city && !cities.some(known => key(known) === key(city))) cities.push(city)
+    }
+    citiesByName.set(key(name), cities)
+  }
+
+  return citiesByName
+}
+
 function sortKeyOf(name: string): string {
   return name.replace(NAME_PREFIX, '')
 }
@@ -138,9 +174,19 @@ export function lettersOf(doctors: readonly Doctor[]): string[] {
   return letters.sort((a, b) => (a === '#' ? 1 : b === '#' ? -1 : a.localeCompare(b)))
 }
 
-/** Full payload consumed by the UI: sorted doctors, unique locations, letters. */
-export function buildDoctorIndex(values: readonly (readonly unknown[])[]): DoctorIndex {
-  const doctors = groupDoctors(parseRows(values))
+/**
+ * Full payload consumed by the UI. Doctors come from the main tab (RSVP = "Yes"
+ * only); their location chips are the cities from the "Cities" tab.
+ */
+export function buildDoctorIndex(
+  doctorValues: readonly (readonly unknown[])[],
+  cityValues: readonly (readonly unknown[])[],
+): DoctorIndex {
+  const citiesByName = buildCityMap(cityValues)
+  const doctors = groupDoctors(parseRows(doctorValues)).map(doctor => ({
+    ...doctor,
+    locations: citiesByName.get(key(doctor.name)) ?? [],
+  }))
   const locations = [...new Set(doctors.flatMap(doctor => doctor.locations))].sort((a, b) =>
     a.localeCompare(b, 'en', { sensitivity: 'base' }),
   )

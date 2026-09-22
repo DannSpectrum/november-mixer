@@ -22,7 +22,7 @@ export function Hero(props: HeroProps) {
 
       <div className="relative mx-auto max-w-6xl px-4 pb-12 pt-14 sm:px-6 sm:pb-16 sm:pt-20">
         <h1
-          className="animate-fade-rise mt-6 max-w-2xl text-balance text-4xl font-semibold leading-[1.08] tracking-tight sm:text-6xl"
+          className="animate-fade-rise mt-6 max-w-4xl text-balance text-4xl font-semibold leading-[1.08] tracking-tight sm:text-6xl"
           style={{ animationDelay: '60ms' }}
         >
           <span className="bg-linear-to-r from-brand via-[#ff2d78] to-[#7c5cff] bg-clip-text text-transparent">

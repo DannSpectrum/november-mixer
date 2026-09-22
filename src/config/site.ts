@@ -9,7 +9,7 @@ export const site = {
   /** How often the client re-checks the live doctor list (milliseconds). */
   syncIntervalMs: 60_000,
   event: {
-    name: 'November Mixer',
+    name: 'Meet The Doctors — Riverside',
     date: 'Friday, November 20, 2026',
     time: '6:30 PM – 9:30 PM',
     venue: 'Santa Barbara Room, 3649 Mission Inn Avenue, Riverside, CA 92501',

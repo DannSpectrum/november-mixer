@@ -18,21 +18,32 @@ Google Sheet (private)  ──▶  api/doctors.ts (Vercel fn, service account, e
   API function and the UI, so the data behaves identically everywhere.
 - `src/hooks/useDoctors.ts` — polling + last-good-payload caching; failures surface as a
   retryable error state.
-- `api/doctors.ts` — authenticates with a Google **service account**, reads `A:G` of your
-  sheet tab (only rows with RSVP = `Yes` are served), and responds with
-  `Cache-Control: s-maxage=30` so polling stays cheap.
+- `api/doctors.ts` — authenticates with a Google **service account**, reads the main tab
+  (`A:G` — only rows with RSVP = `Yes` are served) plus the `Cities` tab (`A:L`) for the
+  location chips, and responds with `Cache-Control: s-maxage=30` so polling stays cheap.
 
 ## Sheet format
 
+### Main tab (defaults to `Sheet1` — set `GOOGLE_SHEET_NAME`, e.g. `Riverside`)
+
 | A (Doctor)     | B (Location)                  | … | G (RSVP) |
 | -------------- | ----------------------------- | - | -------- |
-| Dr. Ana Reyes  | Spectrum Clinic — Makati      | … | Yes      |
-| Dr. Ana Reyes  | The Medical City — Pasig      | … | Yes      |
-| Dr. Ben Cruz   | Spectrum Clinic — Ortigas     | … | No       |
+| Ana Reyes      | Riverside                     | … | Yes      |
+| Ben Cruz       | Corona                        | … | No       |
 
-- One row per **doctor–location pair** (repeat the doctor for each location — the app groups them).
+- Column A is written `{First name} {Last name}` — the A–Z list groups by first name.
 - **Column G is the RSVP flag — only rows set to `Yes` are shown** (pending, maybe and no are excluded).
-- A header row is optional (it is detected and skipped). The tab defaults to `Sheet1`.
+- A header row is optional (it is detected and skipped). Repeating a doctor merges their rows.
+
+### Cities tab (defaults to `Cities` — set `GOOGLE_CITIES_SHEET_NAME`)
+
+| A (Doctors)      | B (City #1) | C (City #2) | … | L (City #11) |
+| ---------------- | ----------- | ----------- | - | ------------ |
+| Ballard, Jeffrey | Bakersfield | Corona      | … | Van Nuys     |
+
+- Column A is written `{Last name}, {First name}` — matched to the main tab automatically.
+- One city per cell (B–L); duplicates within a row are removed. These drive the location chips.
+- Doctors without a Cities row show “Location to be announced”; extra rows are ignored.
 
 ## Setup
 
@@ -52,7 +63,8 @@ Copy `.env.example` to `.env.local` (used by `npx vercel dev`), and add the same
 | Variable                          | Required | Notes                                              |
 | --------------------------------- | -------- | -------------------------------------------------- |
 | `GOOGLE_SHEET_ID`                 | yes      | from the sheet URL: `/spreadsheets/d/<ID>/edit`     |
-| `GOOGLE_SHEET_NAME`               | no       | defaults to `Sheet1`                                |
+| `GOOGLE_SHEET_NAME`               | no       | main tab; defaults to `Sheet1`                      |
+| `GOOGLE_CITIES_SHEET_NAME`        | no       | cities tab for chips; defaults to `Cities`          |
 | `GOOGLE_SERVICE_ACCOUNT_JSON`     | one of   | the full JSON key file contents (single line is fine) |
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL`    | pair     | alternative: email + private key fields             |
 | `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | pair  | literal `\n` escapes are handled                    |
