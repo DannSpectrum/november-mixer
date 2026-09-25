@@ -8,6 +8,7 @@ import { google } from 'googleapis'
 const SHEETS_READONLY_SCOPE = 'https://www.googleapis.com/auth/spreadsheets.readonly'
 const DEFAULT_SHEET_NAME = 'Sheet1'
 const DEFAULT_CITIES_SHEET_NAME = 'Cities'
+const DEFAULT_SPECIALTIES_SHEET_NAME = 'Specialties'
 const CACHE_CONTROL = 'public, s-maxage=30, stale-while-revalidate=60'
 
 interface ServiceAccountCredentials {
@@ -40,8 +41,9 @@ function readCredentials(): ServiceAccountCredentials {
 /**
  * GET /api/doctors — reads the private Google Sheet through a service account
  * and returns the grouped doctor index as JSON. Doctors come from the main tab
- * (RSVP column G must be "Yes"); location chips come from the "Cities" tab.
- * Cached at the edge for 30s so frequent polling stays cheap.
+ * (RSVP column G must be "Yes"); location chips come from the "Cities" tab and
+ * specialty pills from the "Specialties" tab. Cached at the edge for 30s so
+ * frequent polling stays cheap.
  */
 export default async function handler(request: VercelRequest, response: VercelResponse): Promise<void> {
   if (request.method !== 'GET') {
@@ -56,17 +58,25 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
     const sheetName = process.env.GOOGLE_SHEET_NAME ?? DEFAULT_SHEET_NAME
     const citiesSheetName = process.env.GOOGLE_CITIES_SHEET_NAME ?? DEFAULT_CITIES_SHEET_NAME
+    const specialtiesSheetName = process.env.GOOGLE_SPECIALTIES_SHEET_NAME ?? DEFAULT_SPECIALTIES_SHEET_NAME
     const { clientEmail, privateKey } = readCredentials()
 
     const auth = new google.auth.JWT({ email: clientEmail, key: privateKey, scopes: [SHEETS_READONLY_SCOPE] })
     const sheets = google.sheets({ version: 'v4', auth })
-    const [doctors, cities] = await Promise.all([
+    const [doctors, cities, specialties] = await Promise.all([
       sheets.spreadsheets.values.get({ spreadsheetId, range: `'${sheetName}'!A:G` }),
       sheets.spreadsheets.values.get({ spreadsheetId, range: `'${citiesSheetName}'!A:L` }),
+      sheets.spreadsheets.values.get({ spreadsheetId, range: `'${specialtiesSheetName}'!A:B` }),
     ])
 
     response.setHeader('Cache-Control', CACHE_CONTROL)
-    response.status(200).json(buildDoctorIndex(doctors.data.values ?? [], cities.data.values ?? []))
+    response.status(200).json(
+      buildDoctorIndex({
+        doctors: doctors.data.values ?? [],
+        cities: cities.data.values ?? [],
+        specialties: specialties.data.values ?? [],
+      }),
+    )
   } catch (error) {
     console.error('[api/doctors]', error)
     const message = error instanceof Error ? error.message : 'Unexpected server error'

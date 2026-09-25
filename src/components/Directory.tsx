@@ -13,7 +13,7 @@ interface DirectoryProps {
   hasError: boolean
   onRetry: () => void
   onClearSearch: () => void
-  onSelectLocation: (location: string) => void
+  onSelectFilter: (value: string) => void
 }
 
 export function Directory({
@@ -23,7 +23,7 @@ export function Directory({
   hasError,
   onRetry,
   onClearSearch,
-  onSelectLocation,
+  onSelectFilter,
 }: DirectoryProps) {
   const groups = useMemo(() => {
     const byLetter = new Map<string, Doctor[]>()
@@ -51,7 +51,7 @@ export function Directory({
         Doctors at the event
       </h2>
       <p className="mt-1 text-sm text-ink-muted">
-        Browse A–Z or search by name or location — the list stays up to date automatically.
+        Browse A–Z or search by name, city, or specialty — the list stays up to date automatically.
       </p>
 
       {showDirectory && (
@@ -76,7 +76,7 @@ export function Directory({
             title={query ? `No doctors match “${query}”` : 'The list is empty'}
             description={
               query
-                ? 'Try a different name or location — or clear the search to see everyone.'
+                ? 'Try a different name, city, or specialty — or clear the search to see everyone.'
                 : 'Doctors will appear here as soon as the sheet has data.'
             }
             action={query ? { label: 'Clear search', onClick: onClearSearch } : undefined}
@@ -96,7 +96,7 @@ export function Directory({
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {groupDoctors.map(doctor => (
-                    <DoctorCard key={doctor.name} doctor={doctor} onSelectLocation={onSelectLocation} />
+                    <DoctorCard key={doctor.name} doctor={doctor} onSelectFilter={onSelectFilter} />
                   ))}
                 </div>
               </section>

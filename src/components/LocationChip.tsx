@@ -9,7 +9,7 @@ export function LocationChip({ location, onSelect }: LocationChipProps) {
       type="button"
       onClick={() => onSelect(location)}
       title={`Show doctors at ${location}`}
-      className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-hairline bg-canvas px-2.5 py-1 text-left text-xs text-ink-soft transition-colors duration-200 hover:border-brand/40 hover:bg-brand-tint hover:text-brand-text"
+      className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-hairline bg-canvas px-2.5 py-1 text-left text-xs text-ink-soft transition-colors duration-200 hover:border-brand/40 hover:bg-brand-tint hover:text-brand-text cursor-pointer"
     >
       <svg
         aria-hidden

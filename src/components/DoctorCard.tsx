@@ -1,13 +1,14 @@
 import { accentFor } from '../lib/colors'
 import { initialsOf, locationLabel, type Doctor } from '../lib/doctors'
 import { LocationChip } from './LocationChip'
+import { SpecialtyPill } from './SpecialtyPill'
 
 interface DoctorCardProps {
   doctor: Doctor
-  onSelectLocation: (location: string) => void
+  onSelectFilter: (value: string) => void
 }
 
-export function DoctorCard({ doctor, onSelectLocation }: DoctorCardProps) {
+export function DoctorCard({ doctor, onSelectFilter }: DoctorCardProps) {
   const accent = accentFor(doctor.name)
 
   return (
@@ -25,9 +26,16 @@ export function DoctorCard({ doctor, onSelectLocation }: DoctorCardProps) {
           <p className="text-[13px] text-ink-muted">{locationLabel(doctor.locations.length)}</p>
         </div>
       </div>
+      {doctor.specialties.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {doctor.specialties.map(specialty => (
+            <SpecialtyPill key={specialty} specialty={specialty} onSelect={onSelectFilter} />
+          ))}
+        </div>
+      )}
       <div className="flex flex-wrap gap-1.5">
         {doctor.locations.map(location => (
-          <LocationChip key={location} location={location} onSelect={onSelectLocation} />
+          <LocationChip key={location} location={location} onSelect={onSelectFilter} />
         ))}
       </div>
     </article>

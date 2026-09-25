@@ -20,7 +20,8 @@ Google Sheet (private)  ──▶  api/doctors.ts (Vercel fn, service account, e
   retryable error state.
 - `api/doctors.ts` — authenticates with a Google **service account**, reads the main tab
   (`A:G` — only rows with RSVP = `Yes` are served) plus the `Cities` tab (`A:L`) for the
-  location chips, and responds with `Cache-Control: s-maxage=30` so polling stays cheap.
+  location chips and the `Specialties` tab (`A:B`) for the specialty pills, and responds
+  with `Cache-Control: s-maxage=30` so polling stays cheap.
 
 ## Sheet format
 
@@ -45,6 +46,17 @@ Google Sheet (private)  ──▶  api/doctors.ts (Vercel fn, service account, e
 - One city per cell (B–L); duplicates within a row are removed. These drive the location chips.
 - Doctors without a Cities row show “Location to be announced”; extra rows are ignored.
 
+### Specialties tab (defaults to `Specialties` — set `GOOGLE_SPECIALTIES_SHEET_NAME`)
+
+| A (Doctor)        | B (Specialties)                          |
+| ----------------- | ---------------------------------------- |
+| Abdulian, Michael | Orthopedics (ORTH)                       |
+| Brummel, Jared    | Orthopedics (ORTH), Osteopathic (OSTP)   |
+
+- Column A is `{Last name}, {First name}` — matched to the main tab automatically.
+- Comma-separated per doctor; the trailing `(CODE)` is removed for display.
+- Shown as tappable pills (and searchable). Extra rows are ignored.
+
 ## Setup
 
 ### 1. Google Cloud (one time)
@@ -65,6 +77,7 @@ Copy `.env.example` to `.env.local` (used by `npx vercel dev`), and add the same
 | `GOOGLE_SHEET_ID`                 | yes      | from the sheet URL: `/spreadsheets/d/<ID>/edit`     |
 | `GOOGLE_SHEET_NAME`               | no       | main tab; defaults to `Sheet1`                      |
 | `GOOGLE_CITIES_SHEET_NAME`        | no       | cities tab for chips; defaults to `Cities`          |
+| `GOOGLE_SPECIALTIES_SHEET_NAME`   | no       | specialties tab; defaults to `Specialties`          |
 | `GOOGLE_SERVICE_ACCOUNT_JSON`     | one of   | the full JSON key file contents (single line is fine) |
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL`    | pair     | alternative: email + private key fields             |
 | `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | pair  | literal `\n` escapes are handled                    |

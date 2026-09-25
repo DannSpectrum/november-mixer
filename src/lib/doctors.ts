@@ -14,6 +14,7 @@ export interface DoctorRow {
 export interface Doctor {
   name: string
   locations: string[]
+  specialties: string[]
 }
 
 export interface DoctorIndex {
@@ -35,6 +36,10 @@ const RSVP_ACCEPTED = 'yes'
 const CITY_NAME_COLUMN = 0 // column A of the Cities tab
 const CITY_FIRST_COLUMN = 1 // column B
 const CITY_LAST_COLUMN = 11 // column L
+
+const SPECIALTY_NAME_COLUMN = 0 // column A of the Specialties tab
+const SPECIALTY_VALUES_COLUMN = 1 // column B
+const SPECIALTY_CODE = /\s*\([^)]*\)\s*$/
 
 function normalize(value: unknown): string {
   return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : ''
@@ -122,6 +127,16 @@ function reorderName(raw: string): string {
   return `${tokens.join(' ')} ${last}${suffix ? ` ${suffix}` : ''}`
 }
 
+function isNameHeader(name: string): boolean {
+  const value = name.toLowerCase()
+  return value === 'doctor' || value === 'doctors'
+}
+
+/** Drops the trailing abbreviation code: "Orthopedics (ORTH)" → "Orthopedics". */
+function normalizeSpecialty(raw: string): string {
+  return normalize(raw).replace(SPECIALTY_CODE, '').trim()
+}
+
 /** City lists from the "Cities" tab, keyed by the normalized doctor name. */
 function buildCityMap(values: readonly (readonly unknown[])[]): Map<string, string[]> {
   const citiesByName = new Map<string, string[]>()
@@ -129,7 +144,7 @@ function buildCityMap(values: readonly (readonly unknown[])[]): Map<string, stri
   for (const value of values) {
     const row = Array.isArray(value) ? value : []
     const name = reorderName(normalize(row[CITY_NAME_COLUMN]))
-    if (!name || name.toLowerCase() === 'doctors') continue
+    if (!name || isNameHeader(name)) continue
 
     const cities: string[] = []
     for (let column = CITY_FIRST_COLUMN; column <= CITY_LAST_COLUMN; column++) {
@@ -140,6 +155,28 @@ function buildCityMap(values: readonly (readonly unknown[])[]): Map<string, stri
   }
 
   return citiesByName
+}
+
+/** Specialty lists from the "Specialties" tab, keyed by the normalized doctor name. */
+function buildSpecialtyMap(values: readonly (readonly unknown[])[]): Map<string, string[]> {
+  const specialtiesByName = new Map<string, string[]>()
+
+  for (const value of values) {
+    const row = Array.isArray(value) ? value : []
+    const name = reorderName(normalize(row[SPECIALTY_NAME_COLUMN]))
+    if (!name || isNameHeader(name)) continue
+
+    const specialties: string[] = []
+    for (const part of normalize(row[SPECIALTY_VALUES_COLUMN]).split(',')) {
+      const specialty = normalizeSpecialty(part)
+      if (specialty && !specialties.some(known => key(known) === key(specialty))) {
+        specialties.push(specialty)
+      }
+    }
+    specialtiesByName.set(key(name), specialties)
+  }
+
+  return specialtiesByName
 }
 
 function sortKeyOf(name: string): string {
@@ -157,7 +194,7 @@ export function groupDoctors(rows: readonly DoctorRow[]): Doctor[] {
   for (const { doctor, location } of rows) {
     const existing = byName.get(key(doctor))
     if (!existing) {
-      byName.set(key(doctor), { name: doctor, locations: [location] })
+      byName.set(key(doctor), { name: doctor, locations: [location], specialties: [] })
       continue
     }
     if (!existing.locations.some(known => key(known) === key(location))) {
@@ -174,18 +211,24 @@ export function lettersOf(doctors: readonly Doctor[]): string[] {
   return letters.sort((a, b) => (a === '#' ? 1 : b === '#' ? -1 : a.localeCompare(b)))
 }
 
+export interface DoctorSources {
+  doctors: readonly (readonly unknown[])[]
+  cities: readonly (readonly unknown[])[]
+  specialties: readonly (readonly unknown[])[]
+}
+
 /**
  * Full payload consumed by the UI. Doctors come from the main tab (RSVP = "Yes"
- * only); their location chips are the cities from the "Cities" tab.
+ * only); location chips come from the "Cities" tab and specialty pills from the
+ * "Specialties" tab.
  */
-export function buildDoctorIndex(
-  doctorValues: readonly (readonly unknown[])[],
-  cityValues: readonly (readonly unknown[])[],
-): DoctorIndex {
+export function buildDoctorIndex({ doctors: doctorValues, cities: cityValues, specialties: specialtyValues }: DoctorSources): DoctorIndex {
   const citiesByName = buildCityMap(cityValues)
+  const specialtiesByName = buildSpecialtyMap(specialtyValues)
   const doctors = groupDoctors(parseRows(doctorValues)).map(doctor => ({
     ...doctor,
     locations: citiesByName.get(key(doctor.name)) ?? [],
+    specialties: specialtiesByName.get(key(doctor.name)) ?? [],
   }))
   const locations = [...new Set(doctors.flatMap(doctor => doctor.locations))].sort((a, b) =>
     a.localeCompare(b, 'en', { sensitivity: 'base' }),
@@ -193,12 +236,13 @@ export function buildDoctorIndex(
   return { doctors, locations, letters: lettersOf(doctors), updatedAt: new Date().toISOString() }
 }
 
-/** Case-insensitive match against the name or any location. */
+/** Case-insensitive match against the name, any location, or any specialty. */
 export function matchesQuery(doctor: Doctor, query: string): boolean {
   const needle = query.trim().toLowerCase()
   if (!needle) return true
   return (
     doctor.name.toLowerCase().includes(needle) ||
-    doctor.locations.some(location => location.toLowerCase().includes(needle))
+    doctor.locations.some(location => location.toLowerCase().includes(needle)) ||
+    doctor.specialties.some(specialty => specialty.toLowerCase().includes(needle))
   )
 }

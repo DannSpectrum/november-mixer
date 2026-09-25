@@ -36,7 +36,7 @@ export function SearchBar({
           type="search"
           value={query}
           onChange={event => onQueryChange(event.target.value)}
-          placeholder="Search by doctor or location…"
+          placeholder="Search by doctor, city, or specialty…"
           autoComplete="off"
           className="h-14 w-full rounded-2xl border border-hairline bg-surface pl-12 pr-12 text-base text-ink shadow-sm outline-none transition duration-200 ease-soft placeholder:text-ink-muted/70 focus:border-brand/50 focus:ring-4 focus:ring-brand/10"
         />

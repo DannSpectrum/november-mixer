@@ -16,8 +16,8 @@ export default function App() {
   const status: SyncStatus = index ? 'live' : isLoading ? 'loading' : 'offline'
   const isUnavailable = Boolean(error) && !index
 
-  const handleSelectLocation = useCallback((location: string) => {
-    setQuery(location)
+  const handleSelectFilter = useCallback((value: string) => {
+    setQuery(value)
     document.getElementById('doctors')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [])
 
@@ -43,7 +43,7 @@ export default function App() {
           hasError={isUnavailable}
           onRetry={retry}
           onClearSearch={handleClearSearch}
-          onSelectLocation={handleSelectLocation}
+          onSelectFilter={handleSelectFilter}
         />
       </main>
       <Footer />
